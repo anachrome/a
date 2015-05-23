@@ -23,6 +23,7 @@ struct entry_t {
     wstring letters; // the letters (unicode codepoints) of the entry, in order
     word_t mask;     // the letters, represented as a vector of bitmasks
     bool same;       // true if this is an anagram of the previous entry
+    bool in;         // true if this is in the word we want
 };
 
 typedef list<entry_t>::const_iterator dict_iter_t;
@@ -104,15 +105,12 @@ bool next(int i, const list<entry_t> &dict,
     if (i > 0) {
         anagram[i - 1]++;
         if (anagram[i - 1] == dict.cend() || !anagram[i - 1]->same) {
-            bool ret = next(i - 1, dict, begin, anagram);
-            if (begin[i - 1].second) {
-                begin[i - 1].first++;
-                if (begin[i - 1].first == dict.cend() || !begin[i - 1].first->same) {
-                    begin[i - 1].first--;
-                }
-            }
-            anagram[i - 1] = begin[i - 1].first;
-            return ret;
+            bool more = next(i - 1, dict, begin, anagram);
+            if (begin[i - 1].second)
+                anagram[i - 1] = anagram[i - 2];
+            else
+                anagram[i - 1] = begin[i - 1].first;
+            return more;
         }
     }
 
@@ -130,17 +128,6 @@ void print(const list<entry_t> &dict,
     cout << endl;
 
     size_t i = anagram.size();
-    //while  (i > 0) {
-    //    anagram[i - 1]++;
-    //    if (anagram[i - 1] == dict.cend() || !anagram[i - 1]->same) {
-    //        anagram[i - 1] = begin[i - 1].first;
-    //        i--;
-    //    } else {
-    //        break;
-    //    }
-    //}
-
-    //if (i > 0)
     if (next(i, dict, begin, anagram))
         print(dict, begin, anagram);
 }
@@ -148,10 +135,8 @@ void print(const list<entry_t> &dict,
 void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram) {
     vector<pair<dict_iter_t, bool>> begin;
     for (auto i : anagram) {
-        if (begin.size() && i->mask == begin.back().first->mask)
-            begin.push_back({i, true});
-        else
-            begin.push_back({i, false});
+        bool same = begin.size() && i->mask == begin.back().first->mask;
+        begin.push_back({i, same});
     }
     print(dict, begin, anagram);
 }
@@ -276,7 +261,7 @@ int main(int argc, char **argv) {
 
         string word = converter.to_bytes(wword);
 
-        dict.push_back({ word, wword, cword, false });
+        dict.push_back({ word, wword, cword, false, false });
     }
 
     dict.sort([](entry_t a, entry_t b) {
