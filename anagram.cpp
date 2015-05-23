@@ -23,7 +23,6 @@ struct entry_t {
     wstring letters; // the letters (unicode codepoints) of the entry, in order
     word_t mask;     // the letters, represented as a vector of bitmasks
     bool same;       // true if this is an anagram of the previous entry
-    bool in;         // true if this is in the word we want
 };
 
 typedef list<entry_t>::const_iterator dict_iter_t;
@@ -33,30 +32,13 @@ bool count(map<wchar_t, int> &letter_pos, wstring word, word_t &mask) {
         if (letter_pos.find(c) == letter_pos.cend())
             return false;
 
-        // this is shitty as fuck (?)
-        int index = -1;
-        for (int i = 0; i < mask.size(); i++) {
-            if ((mask[i] & letter_pos[c]) == 0) {
-                index = i;
+        int index;
+        for (index = mask.size(); index > 0; index--)
+            if (mask[index - 1] & letter_pos[c])
                 break;
-            }
-        }
 
-        ///* I think this is better */
-        //int index;
-        //for (index = mask.size(); index > 0; index--) {
-        //    if (mask[index - 1] & letter_pos[c]) {
-        //        break;
-        //    }
-        //}
-
-        if (index == -1) {
-            index = mask.size();
-            mask.push_back({});
-        }
-
-        //if (index == mask.size())
-        //    mask.push_back({});
+        if (index == mask.size())
+            mask.push_back(0x0);
 
         mask[index] |= letter_pos[c];
     }
@@ -82,13 +64,11 @@ word_t remove(word_t needle, const word_t &haystack) {
     for (int i = 0; i < needle.size(); i++) {
         int end = out.size() - 1;
 
-        //while (needle[i].any()) {
         while (needle[i] & ~0x0) {
             auto old_out = out[end];
             out[end] &= ~needle[i];
             needle[i] ^= (out[end] ^ old_out);
 
-            //if (out[end].none())
             if (!out[end])
                 out.pop_back();
 
@@ -206,7 +186,7 @@ int main(int argc, char **argv) {
     argv += optind;
 
     if (argc != 1) {
-        wcout << "bad\n";
+        cout << "bad\n";
         return 1;
     } else {
         want = *argv;
@@ -253,15 +233,14 @@ int main(int argc, char **argv) {
         //}
 
         word_t cword;
-        if (!count(letter_pos, wword, cword)) {
+        if (!count(letter_pos, wword, cword))
             continue;
-        } if (!in(cword, cwant)) {
+        if (!in(cword, cwant))
             continue;
-        }
 
         string word = converter.to_bytes(wword);
 
-        dict.push_back({ word, wword, cword, false, false });
+        dict.push_back({ word, wword, cword, false });
     }
 
     dict.sort([](entry_t a, entry_t b) {
