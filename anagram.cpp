@@ -98,8 +98,29 @@ word_t remove(word_t needle, const word_t &haystack) {
     return out;
 }
 
+bool next(int i, const list<entry_t> &dict,
+          vector<pair<dict_iter_t, bool>> &begin, vector<dict_iter_t> &anagram) {
+
+    if (i > 0) {
+        anagram[i - 1]++;
+        if (anagram[i - 1] == dict.cend() || !anagram[i - 1]->same) {
+            bool ret = next(i - 1, dict, begin, anagram);
+            if (begin[i - 1].second) {
+                begin[i - 1].first++;
+                if (begin[i - 1].first == dict.cend() || !begin[i - 1].first->same) {
+                    begin[i - 1].first--;
+                }
+            }
+            anagram[i - 1] = begin[i - 1].first;
+            return ret;
+        }
+    }
+
+    return i > 0;
+}
+
 void print(const list<entry_t> &dict,
-           vector<dict_iter_t> &begin, vector<dict_iter_t> &anagram) {
+           vector<pair<dict_iter_t, bool>> &begin, vector<dict_iter_t> anagram) {
 
     if (anagram.size()) {
         cout << (anagram[0]->bytes);
@@ -109,22 +130,29 @@ void print(const list<entry_t> &dict,
     cout << endl;
 
     size_t i = anagram.size();
-    while  (i > 0) {
-        anagram[i - 1]++;
-        if (anagram[i - 1] == dict.cend() || !anagram[i - 1]->same) {
-            anagram[i - 1] = begin[i - 1];
-            i--;
-        } else {
-            break;
-        }
-    }
+    //while  (i > 0) {
+    //    anagram[i - 1]++;
+    //    if (anagram[i - 1] == dict.cend() || !anagram[i - 1]->same) {
+    //        anagram[i - 1] = begin[i - 1].first;
+    //        i--;
+    //    } else {
+    //        break;
+    //    }
+    //}
 
-    if (i > 0)
+    //if (i > 0)
+    if (next(i, dict, begin, anagram))
         print(dict, begin, anagram);
 }
 
 void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram) {
-    vector<dict_iter_t> begin = anagram;
+    vector<pair<dict_iter_t, bool>> begin;
+    for (auto i : anagram) {
+        if (begin.size() && i->mask == begin.back().first->mask)
+            begin.push_back({i, true});
+        else
+            begin.push_back({i, false});
+    }
     print(dict, begin, anagram);
 }
 
@@ -150,14 +178,6 @@ void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
         }
     }
 }
-
-// :<
-template <class Facet>
-class deletable_facet : public Facet {
-public:
-    using Facet::Facet;
-    ~deletable_facet() { }
-};
 
 int main(int argc, char **argv) {
     /*  tentative options + flags:
