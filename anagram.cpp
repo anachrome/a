@@ -27,6 +27,12 @@ struct entry_t {
 
 typedef list<entry_t>::const_iterator dict_iter_t;
 
+// global modifiers
+int min_letters = 0;
+int max_letters = 0;
+int min_words = 0;
+int max_words = 0;
+
 bool count(map<wchar_t, int> &letter_pos, wstring word, word_t &mask) {
     for (wchar_t c : word) {
         if (letter_pos.find(c) == letter_pos.cend())
@@ -123,8 +129,11 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram) {
 void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
              word_t word, vector<dict_iter_t> &prefix) {
 
-    if (!word.size())
+    if (!word.size() && prefix.size() >= min_words)
         print(dict, prefix);
+
+    if (max_words && prefix.size() == max_words)
+        return;
 
     for (auto i = begin; i != dict.cend(); i++) {
         if (i->same)
@@ -145,26 +154,27 @@ void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
 int main(int argc, char **argv) {
     /*  tentative options + flags:
 
-        min word length (in letters)   (and max?) -l --min-letters,
-                                                  -L --max-letters
-        max anagram length (in words)  (and min?) -w --max-words,
-                                                  -W --min-words
-
         case sensitivity                          -i --case-insensitive
         punctuation flags                         -p [ps] --ignore-punct=[ps]
 
         just show possible words (print stripped dict) -s --words
         print worse case word                          -S --biggest-word
                                                        or --worst-phrase ?
+
+        we need a --help and/or a manpage
     */
 
     string dictfile;
     string want;
 
-    auto shorts = "d:";
+    auto shorts = "d:l:L:w:W:i";
     struct option longs[] = {
-        /* name    has_arg            flag     val */   
-        {  "dict", required_argument, nullptr, 'd' },
+        /* name           has_arg            flag     val */
+        {  "dict",        required_argument, nullptr, 'd' },
+        {  "min-letters", required_argument, nullptr, 'l' },
+        {  "max-letters", required_argument, nullptr, 'L' },
+        {  "max-words",   required_argument, nullptr, 'w' },
+        {  "min-words",   required_argument, nullptr, 'W' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -176,6 +186,19 @@ int main(int argc, char **argv) {
             switch (opt) {
             case 'd':
                 dictfile = optarg;
+                break;
+            case 'l':
+                min_letters = stoi(optarg);
+                break;
+            case 'L':
+                max_letters = stoi(optarg);
+                break;
+            case 'w':
+                max_words = stoi(optarg);
+                break;
+            case 'W':
+                min_words = stoi(optarg);
+                break;
             }
         }
     }
@@ -234,6 +257,11 @@ int main(int argc, char **argv) {
         if (!count(letter_pos, wword, cword))
             continue;
         if (!in(cword, cwant))
+            continue;
+
+        if (max_letters && wword.size() > max_letters)
+            continue;
+        if (wword.size() < min_letters)
             continue;
 
         string word = converter.to_bytes(wword);
