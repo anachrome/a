@@ -32,6 +32,7 @@ int min_letters = 0;
 int max_letters = 0;
 int min_words = 0;
 int max_words = 0;
+bool show_words = false;
 
 bool count(map<wchar_t, int> &letter_pos, wstring word, word_t &mask) {
     for (wchar_t c : word) {
@@ -155,9 +156,8 @@ int main(int argc, char **argv) {
     /*  tentative options + flags:
 
         case sensitivity                          -i --case-insensitive
-        punctuation flags                         -p [ps] --ignore-punct=[ps]
+        punctuation flags                         -p [ps] --ignore=[ps]
 
-        just show possible words (print stripped dict) -s --words
         print worse case word                          -S --biggest-word
                                                        or --worst-phrase ?
 
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
     string dictfile;
     string want;
 
-    auto shorts = "d:l:L:w:W:i";
+    auto shorts = "d:l:L:w:W:s";
     struct option longs[] = {
         /* name           has_arg            flag     val */
         {  "dict",        required_argument, nullptr, 'd' },
@@ -175,6 +175,7 @@ int main(int argc, char **argv) {
         {  "max-letters", required_argument, nullptr, 'L' },
         {  "max-words",   required_argument, nullptr, 'w' },
         {  "min-words",   required_argument, nullptr, 'W' },
+        {  "show-words",  no_argument,       nullptr, 's' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -198,6 +199,9 @@ int main(int argc, char **argv) {
                 break;
             case 'W':
                 min_words = stoi(optarg);
+                break;
+            case 's':
+                show_words = true;
                 break;
             }
         }
@@ -282,6 +286,12 @@ int main(int argc, char **argv) {
         if (now == next) {
             i->same = true;
         }
+    }
+
+    if (show_words) {
+        for (auto e : dict)
+            cout << e.bytes << endl;
+        return 0;
     }
 
     vector<dict_iter_t> prefix;
