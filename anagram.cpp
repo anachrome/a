@@ -86,10 +86,8 @@ bool next(int i, const list<entry_t> &dict,
         anagram[i - 1]++;
         if (anagram[i - 1] == dict.cend() || !anagram[i - 1]->same) {
             bool more = next(i - 1, dict, begin, anagram);
-            if (begin[i - 1].second)
-                anagram[i - 1] = anagram[i - 2];
-            else
-                anagram[i - 1] = begin[i - 1].first;
+            anagram[i - 1] = begin[i - 1].second ? anagram[i - 2]
+                                                 : begin[i - 1].first;
             return more;
         }
     }
