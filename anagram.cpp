@@ -32,6 +32,7 @@ int min_letters = 0;
 int max_letters = 0;
 int min_words = 0;
 int max_words = 0;
+bool case_insensitive = false;
 bool show_words = false;
 
 bool count(map<wchar_t, int> &letter_pos, wstring word, word_t &mask) {
@@ -155,7 +156,6 @@ void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
 int main(int argc, char **argv) {
     /*  tentative options + flags:
 
-        case sensitivity                          -i --case-insensitive
         punctuation flags                         -p [ps] --ignore=[ps]
 
         print worse case word                          -S --biggest-word
@@ -167,15 +167,16 @@ int main(int argc, char **argv) {
     string dictfile;
     string want;
 
-    auto shorts = "d:l:L:w:W:s";
+    auto shorts = "d:l:L:w:W:is";
     struct option longs[] = {
-        /* name           has_arg            flag     val */
-        {  "dict",        required_argument, nullptr, 'd' },
-        {  "min-letters", required_argument, nullptr, 'l' },
-        {  "max-letters", required_argument, nullptr, 'L' },
-        {  "max-words",   required_argument, nullptr, 'w' },
-        {  "min-words",   required_argument, nullptr, 'W' },
-        {  "show-words",  no_argument,       nullptr, 's' },
+        /* name                has_arg            flag     val */
+        {  "dict",             required_argument, nullptr, 'd' },
+        {  "min-letters",      required_argument, nullptr, 'l' },
+        {  "max-letters",      required_argument, nullptr, 'L' },
+        {  "max-words",        required_argument, nullptr, 'w' },
+        {  "min-words",        required_argument, nullptr, 'W' },
+        {  "case-insensitive", no_argument,       nullptr, 'i' },
+        {  "show-words",       no_argument,       nullptr, 's' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -199,6 +200,9 @@ int main(int argc, char **argv) {
                 break;
             case 'W':
                 min_words = stoi(optarg);
+                break;
+            case 'i':
+                case_insensitive = true;
                 break;
             case 's':
                 show_words = true;
@@ -227,11 +231,16 @@ int main(int argc, char **argv) {
     wstring_convert<codecvt_utf8<wchar_t>> converter;
     wstring wwant = converter.from_bytes(want);
 
+    if (case_insensitive)
+        transform(wwant.begin(), wwant.end(), wwant.begin(), ::tolower);
+
     map<wchar_t, int> letter_pos;
 
     int letter_hash = 0x1;
     int alphabet = 0;
     for (wchar_t c : wwant) {
+        if (case_insensitive)
+            c = tolower(c);
         letter_pos[c] = letter_hash;
         letter_hash <<= 1;
         alphabet++;
@@ -257,18 +266,22 @@ int main(int argc, char **argv) {
         //    continue;
         //}
 
-        word_t cword;
-        if (!count(letter_pos, wword, cword))
-            continue;
-        if (!in(cword, cwant))
-            continue;
-
         if (max_letters && wword.size() > max_letters)
             continue;
         if (wword.size() < min_letters)
             continue;
 
         string word = converter.to_bytes(wword);
+
+        if (case_insensitive)
+            transform(wword.begin(), wword.end(), wword.begin(), ::tolower);
+
+        word_t cword;
+        if (!count(letter_pos, wword, cword))
+            continue;
+        if (!in(cword, cwant))
+            continue;
+
 
         dict.push_back({ word, wword, cword, false });
     }
