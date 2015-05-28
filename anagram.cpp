@@ -34,8 +34,11 @@ int min_words = 0;
 int max_words = 0;
 bool case_insensitive = false;
 bool show_words = false;
+wstring punctuation;
+bool keep = false;
 
-bool count(map<wchar_t, int> &letter_pos, wstring word, word_t &mask) {
+bool count(map<wchar_t, unsigned long long> &letter_pos,
+           wstring word, word_t &mask) {
     for (wchar_t c : word) {
         if (letter_pos.find(c) == letter_pos.cend())
             return false;
@@ -88,7 +91,8 @@ word_t remove(word_t needle, const word_t &haystack) {
 }
 
 bool next(int i, const list<entry_t> &dict,
-          vector<pair<dict_iter_t, bool>> &begin, vector<dict_iter_t> &anagram) {
+          vector<pair<dict_iter_t, bool>> &begin,
+          vector<dict_iter_t> &anagram) {
 
     if (i > 0) {
         anagram[i - 1]++;
@@ -103,8 +107,8 @@ bool next(int i, const list<entry_t> &dict,
     return i > 0;
 }
 
-void print(const list<entry_t> &dict,
-           vector<pair<dict_iter_t, bool>> &begin, vector<dict_iter_t> anagram) {
+void print(const list<entry_t> &dict, vector<pair<dict_iter_t, bool>> &begin,
+           vector<dict_iter_t> anagram) {
 
     if (anagram.size()) {
         cout << (anagram[0]->bytes);
@@ -142,7 +146,7 @@ void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
             continue;
         if (in(i->mask, word)) {
             prefix.push_back(i);
-
+            
             anagram(dict,
                     i,
                     remove(i->mask, word),
@@ -154,12 +158,36 @@ void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
 }
 
 int main(int argc, char **argv) {
-    /*  tentative options + flags:
 
-        punctuation flags                         -p [ps] --ignore=[ps]
+    // locale bullshit
+
+    std::locale::global(std::locale(""));
+    //std::wcout.imbue(std::locale());
+
+    wstring_convert<codecvt_utf8<wchar_t>> converter;
+
+    /*  tentative options + flags: and various TODO:s
+
+        find default dictionary
+
+        also there are a couple of "feature bugs" that might want removing
+
+        perhaps --allow should be --alphabet or --whitelist?
+        perhaps --ignore should be --punctuation?
+        perhaps --case-insensitive should be --ignore-case?
+
+        SEGFAULTS with -a
+
+        --word-separator for alternative to space?
 
         print worse case word                          -S --biggest-word
                                                        or --worst-phrase ?
+        
+        filter certain anagrams, at least with regexen
+        --filter, -f
+        --keep, -k
+
+        add sanity checks/error messages for bad options
 
         we need a --help and/or a manpage
     */
@@ -167,7 +195,7 @@ int main(int argc, char **argv) {
     string dictfile;
     string want;
 
-    auto shorts = "d:l:L:w:W:is";
+    auto shorts = "d:l:L:w:W:isp:a:";
     struct option longs[] = {
         /* name                has_arg            flag     val */
         {  "dict",             required_argument, nullptr, 'd' },
@@ -177,6 +205,8 @@ int main(int argc, char **argv) {
         {  "min-words",        required_argument, nullptr, 'W' },
         {  "case-insensitive", no_argument,       nullptr, 'i' },
         {  "show-words",       no_argument,       nullptr, 's' },
+        {  "ignore",           required_argument, nullptr, 'p' },
+        {  "allow",            required_argument, nullptr, 'a' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -207,6 +237,13 @@ int main(int argc, char **argv) {
             case 's':
                 show_words = true;
                 break;
+            case 'p':
+                punctuation = converter.from_bytes(optarg);
+                break;
+            case 'a':
+                punctuation = converter.from_bytes(optarg);
+                keep = true;
+                break;
             }
         }
     }
@@ -223,24 +260,20 @@ int main(int argc, char **argv) {
 
     /* #### */
 
-    // locale bullshit
-
-    std::locale::global(std::locale(""));
-    //std::wcout.imbue(std::locale());
-
-    wstring_convert<codecvt_utf8<wchar_t>> converter;
     wstring wwant = converter.from_bytes(want);
 
     if (case_insensitive)
         transform(wwant.begin(), wwant.end(), wwant.begin(), ::tolower);
 
-    map<wchar_t, int> letter_pos;
+    map<wchar_t, unsigned long long> letter_pos;
 
-    int letter_hash = 0x1;
+    unsigned long long letter_hash = 0x1;
     int alphabet = 0;
     for (wchar_t c : wwant) {
         if (case_insensitive)
             c = tolower(c);
+        if (letter_pos.find(c) != letter_pos.cend())
+            continue;
         letter_pos[c] = letter_hash;
         letter_hash <<= 1;
         alphabet++;
@@ -260,21 +293,31 @@ int main(int argc, char **argv) {
 
     wstring wword;
     while (getline(file, wword)) {
-        //if (any_of(wword.cbegin(), wword.cend(),
-        //    [](char c) { return !iswalpha(c); })) {
-        //    wcout << "noalpha: " << wword << endl;
-        //    continue;
-        //}
+        string word = converter.to_bytes(wword);
+
+        if (case_insensitive)
+            transform(wword.begin(), wword.end(), wword.begin(), ::tolower);
+
+        if (keep) {
+            wword.erase(remove_if(wword.begin(), wword.end(),
+                [](wchar_t c) {
+                    //return find(punctuation.cbegin(), punctuation.cend(),
+                    //    c) == punctuation.cend();
+                    return punctuation.find(c) == punctuation.npos;
+                }), wword.end());
+        } else {
+            wword.erase(remove_if(wword.begin(), wword.end(),
+                [](wchar_t c) {
+                    //return find(punctuation.cbegin(), punctuation.cend(),
+                    //    c) != punctuation.cend();
+                    return punctuation.find(c) != punctuation.npos;
+                }), wword.end());
+        }
 
         if (max_letters && wword.size() > max_letters)
             continue;
         if (wword.size() < min_letters)
             continue;
-
-        string word = converter.to_bytes(wword);
-
-        if (case_insensitive)
-            transform(wword.begin(), wword.end(), wword.begin(), ::tolower);
 
         word_t cword;
         if (!count(letter_pos, wword, cword))
