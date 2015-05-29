@@ -15,7 +15,9 @@
 
 using namespace std;
 
-typedef vector<unsigned long long> word_t;
+typedef unsigned long long ullong_t; /* typedef uint64_t bitmask_t ? */
+
+typedef vector<ullong_t> word_t;
 
 // entry into the dictionary
 struct entry_t {
@@ -37,75 +39,20 @@ bool show_words = false;
 wstring punctuation;
 bool keep = false;
 
-bool count(map<wchar_t, unsigned long long> &letter_pos,
-           wstring word, word_t &mask) {
-    for (wchar_t c : word) {
-        if (letter_pos.find(c) == letter_pos.cend())
-            return false;
+bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask);
+bool in(const word_t &needle, const word_t &haystack);
+word_t remove(word_t needle, const word_t &haystack);
 
-        int index;
-        for (index = mask.size(); index > 0; index--)
-            if (mask[index - 1] & letter_pos[c])
-                break;
+/*  // used in print(1, 2)
+    void print(const list<entry_t> &dict, vector<pair<dict_iter_t, bool>> &begin,
+               vector<dict_iter_t> anagram);
+    // used in anagram
+    void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram);
 
-        if (index == mask.size())
-            mask.push_back(0x0);
-
-        mask[index] |= letter_pos[c];
-    }
-
-    return true;
-}
-
-bool in(const word_t &needle, const word_t &haystack) {
-    if (needle.size() > haystack.size())
-        return false;
-
-    for (int i = 0; i < needle.size(); i++)
-        if ((needle[i] & haystack[i]) != needle[i])
-            return false;
-
-    return true;
-}
-
-// this is not guaranteed to do anything sane if needle isn't in haystack
-word_t remove(word_t needle, const word_t &haystack) {
-    word_t out = haystack;
-
-    for (int i = 0; i < needle.size(); i++) {
-        int end = out.size() - 1;
-
-        while (needle[i] & ~0x0) {
-            auto old_out = out[end];
-            out[end] &= ~needle[i];
-            needle[i] ^= (out[end] ^ old_out);
-
-            if (!out[end])
-                out.pop_back();
-
-            end--;
-        }
-    }
-
-    return out;
-}
-
-bool next(int i, const list<entry_t> &dict,
-          vector<pair<dict_iter_t, bool>> &begin,
-          vector<dict_iter_t> &anagram) {
-
-    if (i > 0) {
-        anagram[i - 1]++;
-        if (anagram[i - 1] == dict.cend() || !anagram[i - 1]->same) {
-            bool more = next(i - 1, dict, begin, anagram);
-            anagram[i - 1] = begin[i - 1].second ? anagram[i - 2]
-                                                 : begin[i - 1].first;
-            return more;
-        }
-    }
-
-    return i > 0;
-}
+    // used in main
+    void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
+                 word_t word, vector<dict_iter_t> &prefix);
+*/
 
 void print(const list<entry_t> &dict, vector<pair<dict_iter_t, bool>> &begin,
            vector<dict_iter_t> anagram) {
@@ -115,11 +62,17 @@ void print(const list<entry_t> &dict, vector<pair<dict_iter_t, bool>> &begin,
         for (int i = 1; i < anagram.size(); i++)
             cout << " " << anagram[i]->bytes;
     }
-    cout << endl;
+    cout << '\n';
 
-    size_t i = anagram.size();
-    if (next(i, dict, begin, anagram))
-        print(dict, begin, anagram);
+    int i = anagram.size();
+    while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
+        i--;
+    if (i - 1 < 0)
+        return;
+    for (; i < anagram.size(); i++)
+        anagram[i] = begin[i].second ? anagram[i - 1] : begin[i].first;
+
+    print(dict, begin, anagram);
 }
 
 void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram) {
@@ -265,9 +218,9 @@ int main(int argc, char **argv) {
     if (case_insensitive)
         transform(wwant.begin(), wwant.end(), wwant.begin(), ::tolower);
 
-    map<wchar_t, unsigned long long> letter_pos;
+    map<wchar_t, ullong_t> letter_pos;
 
-    unsigned long long letter_hash = 0x1;
+    ullong_t letter_hash = 0x1;
     int alphabet = 0;
     for (wchar_t c : wwant) {
         if (case_insensitive)
@@ -354,4 +307,56 @@ int main(int argc, char **argv) {
     anagram(dict, dict.cbegin(), cwant, prefix);
 
     return 0;
+}
+
+bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask) {
+    for (wchar_t c : word) {
+        if (letter_pos.find(c) == letter_pos.cend())
+            return false;
+
+        int index;
+        for (index = mask.size(); index > 0; index--)
+            if (mask[index - 1] & letter_pos[c])
+                break;
+
+        if (index == mask.size())
+            mask.push_back(0x0);
+
+        mask[index] |= letter_pos[c];
+    }
+
+    return true;
+}
+
+bool in(const word_t &needle, const word_t &haystack) {
+    if (needle.size() > haystack.size())
+        return false;
+
+    for (int i = 0; i < needle.size(); i++)
+        if ((needle[i] & haystack[i]) != needle[i])
+            return false;
+
+    return true;
+}
+
+// this is not guaranteed to do anything sane if needle isn't in haystack
+word_t remove(word_t needle, const word_t &haystack) {
+    word_t out = haystack;
+
+    for (int i = 0; i < needle.size(); i++) {
+        int end = out.size() - 1;
+
+        while (needle[i] & ~0x0) {
+            auto old_out = out[end];
+            out[end] &= ~needle[i];
+            needle[i] ^= (out[end] ^ old_out);
+
+            if (!out[end])
+                out.pop_back();
+
+            end--;
+        }
+    }
+
+    return out;
 }
