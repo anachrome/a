@@ -108,8 +108,6 @@ int main(int argc, char **argv) {
 
     /*  tentative options + flags: and various TODO:s
 
-        find default dictionary
-
         also there are a couple of "feature bugs" that might want removing
 
         --word-separator for alternative to space?
@@ -124,7 +122,7 @@ int main(int argc, char **argv) {
         we need a --help and/or a manpage
     */
 
-    string dictfile;
+    string dictfile = "/usr/share/dict/words";
     string want;
 
     auto shorts = "d:l:L:w:W:isp:a:";
