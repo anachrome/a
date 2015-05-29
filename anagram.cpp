@@ -43,10 +43,7 @@ bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask);
 bool in(const word_t &needle, const word_t &haystack);
 word_t remove(word_t needle, const word_t &haystack);
 
-/*  // used in print(1, 2)
-    void print(const list<entry_t> &dict, vector<pair<dict_iter_t, bool>> &begin,
-               vector<dict_iter_t> anagram);
-    // used in anagram
+/*  // used in anagram
     void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram);
 
     // used in main
@@ -54,34 +51,29 @@ word_t remove(word_t needle, const word_t &haystack);
                  word_t word, vector<dict_iter_t> &prefix);
 */
 
-void print(const list<entry_t> &dict, vector<pair<dict_iter_t, bool>> &begin,
-           vector<dict_iter_t> anagram) {
-
-    if (anagram.size()) {
-        cout << (anagram[0]->bytes);
-        for (int i = 1; i < anagram.size(); i++)
-            cout << " " << anagram[i]->bytes;
-    }
-    cout << '\n';
-
-    int i = anagram.size();
-    while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
-        i--;
-    if (i - 1 < 0)
-        return;
-    for (; i < anagram.size(); i++)
-        anagram[i] = begin[i].second ? anagram[i - 1] : begin[i].first;
-
-    print(dict, begin, anagram);
-}
-
-void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram) {
+void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
     vector<pair<dict_iter_t, bool>> begin;
     for (auto i : anagram) {
         bool same = begin.size() && i->mask == begin.back().first->mask;
         begin.push_back({i, same});
     }
-    print(dict, begin, anagram);
+
+    while (true) {
+        if (anagram.size()) {
+            cout << (anagram[0]->bytes);
+            for (int i = 1; i < anagram.size(); i++)
+                cout << " " << anagram[i]->bytes;
+        }
+        cout << '\n';
+
+        int i = anagram.size();
+        while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
+            i--;
+        if (i - 1 < 0)
+            return;
+        for (; i < anagram.size(); i++)
+            anagram[i] = begin[i].second ? anagram[i - 1] : begin[i].first;
+    }
 }
 
 // the sortedness of dict before calling this algorithm affects its speed
@@ -265,6 +257,12 @@ int main(int argc, char **argv) {
                     //    c) != punctuation.cend();
                     return punctuation.find(c) != punctuation.npos;
                 }), wword.end());
+        }
+
+        if (!wword.size()) {
+            cout << "warning: `" << word << "' is entirely punctuation."
+                                         << "  skipping.\n";
+            continue;
         }
 
         if (max_letters && wword.size() > max_letters)
