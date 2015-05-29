@@ -91,12 +91,7 @@ void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
             continue;
         if (in(i->mask, word)) {
             prefix.push_back(i);
-            
-            anagram(dict,
-                    i,
-                    remove(i->mask, word),
-                    prefix);
-
+            anagram(dict, i, remove(i->mask, word), prefix);
             prefix.pop_back();
         }
     }
@@ -117,20 +112,12 @@ int main(int argc, char **argv) {
 
         also there are a couple of "feature bugs" that might want removing
 
-        perhaps --allow should be --alphabet or --whitelist?
-        perhaps --ignore should be --punctuation?
-        perhaps --case-insensitive should be --ignore-case?
-
-        SEGFAULTS with -a
-
         --word-separator for alternative to space?
 
-        print worse case word                          -S --biggest-word
-                                                       or --worst-phrase ?
-        
         filter certain anagrams, at least with regexen
         --filter, -f
         --keep, -k
+        word-level and whole-anagram-level filtering?
 
         add sanity checks/error messages for bad options
 
@@ -148,10 +135,10 @@ int main(int argc, char **argv) {
         {  "max-letters",      required_argument, nullptr, 'L' },
         {  "max-words",        required_argument, nullptr, 'w' },
         {  "min-words",        required_argument, nullptr, 'W' },
-        {  "case-insensitive", no_argument,       nullptr, 'i' },
+        {  "ignore-case",      no_argument,       nullptr, 'i' },
         {  "show-words",       no_argument,       nullptr, 's' },
-        {  "ignore",           required_argument, nullptr, 'p' },
-        {  "allow",            required_argument, nullptr, 'a' },
+        {  "punctuation",      required_argument, nullptr, 'p' },
+        {  "alphabet",         required_argument, nullptr, 'a' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -275,7 +262,6 @@ int main(int argc, char **argv) {
             continue;
         if (!in(cword, cwant))
             continue;
-
 
         dict.push_back({ word, wword, cword, false });
     }
