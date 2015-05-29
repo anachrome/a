@@ -38,6 +38,7 @@ bool case_insensitive = false;
 bool show_words = false;
 wstring punctuation;
 bool keep = false;
+string separator = " ";
 
 bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask);
 bool in(const word_t &needle, const word_t &haystack);
@@ -62,7 +63,7 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
         if (anagram.size()) {
             cout << (anagram[0]->bytes);
             for (int i = 1; i < anagram.size(); i++)
-                cout << " " << anagram[i]->bytes;
+                cout << separator << anagram[i]->bytes;
         }
         cout << '\n';
 
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
 
         also there are a couple of "feature bugs" that might want removing
 
-        --word-separator for alternative to space?
+        --anagram-separator in addition to --word-separator?
 
         filter certain anagrams, at least with regexen
         --filter, -f
@@ -125,18 +126,19 @@ int main(int argc, char **argv) {
     string dictfile = "/usr/share/dict/words";
     string want;
 
-    auto shorts = "d:l:L:w:W:isp:a:";
+    auto shorts = "d:l:L:w:W:isp:a:,:";
     struct option longs[] = {
-        /* name                has_arg            flag     val */
-        {  "dict",             required_argument, nullptr, 'd' },
-        {  "min-letters",      required_argument, nullptr, 'l' },
-        {  "max-letters",      required_argument, nullptr, 'L' },
-        {  "max-words",        required_argument, nullptr, 'w' },
-        {  "min-words",        required_argument, nullptr, 'W' },
-        {  "ignore-case",      no_argument,       nullptr, 'i' },
-        {  "show-words",       no_argument,       nullptr, 's' },
-        {  "punctuation",      required_argument, nullptr, 'p' },
-        {  "alphabet",         required_argument, nullptr, 'a' },
+        /* name           has_arg            flag     val */
+        {  "dict",        required_argument, nullptr, 'd' },
+        {  "min-letters", required_argument, nullptr, 'l' },
+        {  "max-letters", required_argument, nullptr, 'L' },
+        {  "max-words",   required_argument, nullptr, 'w' },
+        {  "min-words",   required_argument, nullptr, 'W' },
+        {  "ignore-case", no_argument,       nullptr, 'i' },
+        {  "show-words",  no_argument,       nullptr, 's' },
+        {  "punctuation", required_argument, nullptr, 'p' },
+        {  "alphabet",    required_argument, nullptr, 'a' },
+        {  "separator",   required_argument, nullptr, ',' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -173,6 +175,9 @@ int main(int argc, char **argv) {
             case 'a':
                 punctuation = converter.from_bytes(optarg);
                 keep = true;
+                break;
+            case ',':
+                separator = optarg;
                 break;
             }
         }
