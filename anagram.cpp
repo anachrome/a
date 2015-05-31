@@ -31,6 +31,8 @@ struct entry_t {
 typedef list<entry_t>::const_iterator dict_iter_t;
 
 // global modifiers
+string dictfile = "/usr/share/dict/words";
+string want;
 int min_letters = 0;
 int max_letters = 0;
 int min_words = 0;
@@ -46,14 +48,27 @@ enum { NONE, DROP, KEEP } filter_keep = NONE;
 bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask);
 bool in(const word_t &needle, const word_t &haystack);
 word_t remove(word_t needle, const word_t &haystack);
+void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram);
 
-/*  // used in anagram
-    void print(const list<entry_t> &dict, vector<dict_iter_t> &anagram);
+// the sortedness of dict before calling this algorithm affects its speed
+void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
+             word_t word, vector<dict_iter_t> &prefix) {
+    if (!word.size() && prefix.size() >= min_words)
+        print(dict, prefix);
 
-    // used in main
-    void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
-                 word_t word, vector<dict_iter_t> &prefix);
-*/
+    if (max_words && prefix.size() == max_words)
+        return;
+
+    for (auto i = begin; i != dict.cend(); i++) {
+        if (i->same)
+            continue;
+        if (in(i->mask, word)) {
+            prefix.push_back(i);
+            anagram(dict, i, remove(i->mask, word), prefix);
+            prefix.pop_back();
+        }
+    }
+}
 
 void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
     vector<pair<dict_iter_t, bool>> begin;
@@ -77,27 +92,6 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
             return;
         for (; i < anagram.size(); i++)
             anagram[i] = begin[i].second ? anagram[i - 1] : begin[i].first;
-    }
-}
-
-// the sortedness of dict before calling this algorithm affects its speed
-void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
-             word_t word, vector<dict_iter_t> &prefix) {
-
-    if (!word.size() && prefix.size() >= min_words)
-        print(dict, prefix);
-
-    if (max_words && prefix.size() == max_words)
-        return;
-
-    for (auto i = begin; i != dict.cend(); i++) {
-        if (i->same)
-            continue;
-        if (in(i->mask, word)) {
-            prefix.push_back(i);
-            anagram(dict, i, remove(i->mask, word), prefix);
-            prefix.pop_back();
-        }
     }
 }
 
@@ -125,9 +119,6 @@ int main(int argc, char **argv) {
 
         we need a --help and/or a manpage
     */
-
-    string dictfile = "/usr/share/dict/words";
-    string want;
 
     auto shorts = "d:l:L:w:W:isp:a:,:f:k:";
     struct option longs[] = {
