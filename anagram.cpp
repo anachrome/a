@@ -7,6 +7,7 @@
 #include <bitset>
 #include <map>
 #include <sstream>
+#include <regex>
 
 #include <locale>
 #include <codecvt>
@@ -39,6 +40,8 @@ bool show_words = false;
 wstring punctuation;
 bool keep = false;
 string separator = " ";
+string filter = "";
+enum { NONE, DROP, KEEP } filter_keep = NONE;
 
 bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask);
 bool in(const word_t &needle, const word_t &haystack);
@@ -126,7 +129,7 @@ int main(int argc, char **argv) {
     string dictfile = "/usr/share/dict/words";
     string want;
 
-    auto shorts = "d:l:L:w:W:isp:a:,:";
+    auto shorts = "d:l:L:w:W:isp:a:,:f:k:";
     struct option longs[] = {
         /* name           has_arg            flag     val */
         {  "dict",        required_argument, nullptr, 'd' },
@@ -139,6 +142,8 @@ int main(int argc, char **argv) {
         {  "punctuation", required_argument, nullptr, 'p' },
         {  "alphabet",    required_argument, nullptr, 'a' },
         {  "separator",   required_argument, nullptr, ',' },
+        {  "filter-drop", required_argument, nullptr, 'f' },
+        {  "filter-keep", required_argument, nullptr, 'k' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -178,6 +183,14 @@ int main(int argc, char **argv) {
                 break;
             case ',':
                 separator = optarg;
+                break;
+            case 'f':
+                filter = optarg;
+                filter_keep = DROP;
+                break;
+            case 'k':
+                filter = optarg;
+                filter_keep = KEEP;
                 break;
             }
         }
@@ -226,9 +239,24 @@ int main(int argc, char **argv) {
 
     list<entry_t> dict;
 
+    regex re(filter, regex_constants::extended);
+
     wstring wword;
     while (getline(file, wword)) {
         string word = converter.to_bytes(wword);
+
+        switch (filter_keep) {
+        case DROP:
+            if(regex_search(word, re))
+                continue;
+            break;
+        case KEEP:
+            if(!regex_search(word, re))
+                continue;
+            break;
+        case NONE:
+            break;
+        }
 
         if (case_insensitive)
             transform(wword.begin(), wword.end(), wword.begin(), ::tolower);
