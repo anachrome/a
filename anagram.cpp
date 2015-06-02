@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
         we need a --help and/or a manpage
     */
 
-    auto shorts = "d:l:L:w:W:isp:a:,:n:f:k:";
+    auto shorts = "d:l:L:w:W:isp:a:,:n:f:k:h";
     struct option longs[] = {
         /* name                 has_arg            flag     val */
         {  "dict",              required_argument, nullptr, 'd' },
@@ -234,12 +234,45 @@ int main(int argc, char **argv) {
         {  "anagram-separator", required_argument, nullptr, 'n' },
         {  "filter-drop",       required_argument, nullptr, 'f' },
         {  "filter-keep",       required_argument, nullptr, 'k' },
+        {  "help",              no_argument,       nullptr, 'h' },
         { 0, 0, 0, 0 } /* end of list */
     };
+
+    string usage = "usage: " + string(argv[0]) + R"( [OPTION] PHRASE
+find anagrams of PHRASE
+
+  -d,  --dict=FILE              FILE contains a list of words which will be
+                                  used to find anagrams of PHRASE;
+                                  default is /usr/share/dict/words
+  -l,  --min-letters=N          ignore words with less than N letters
+  -L,  --max-letters=N          ignore words with more than N letters
+  -w,  --max-words=N            do not generate anagrams with more than N words
+  -W,  --min-words=N            do not generate anagrams with less than N words
+  -f,  --filter-drop=REGEX      REGEX is an extended posix regex;
+                                  words matching it are ignored
+  -k,  --filter-keep=REGEX      REGEX is an extended posix regex;
+                                  words not matching it are ignored
+  -p,  --punctuation=LETTERS    LETTERS is a string representing a set of
+                                  characters which are ignored when deciding
+                                  whether two strings are anagrams
+  -a,  --alphabet=LETTERS       LETTERS is a string representing a set of
+                                  characters; any character not in LETTERS is
+                                  ignored when deciding whether two strings are
+                                  anagrams
+  -i,  --ignore-case            ignore case when deciding whether two strings
+                                  are anagrams
+  -,,  --word-separator=STR     output STR between words in anagrams
+  -n,  --anagram-separator=STR  output STR between anagrams
+  -s,  --show-words             do not output anagrams; instead, show all of
+                                  the words in the dictionary that can be made
+                                  out of letters in PHRASE
+  -h,  --help                   print this help message
+)";
 
     int opt;
     while ((opt = getopt_long(argc, argv, shorts, longs, nullptr)) != -1) {
         if (opt == '?') {
+            cerr << usage;
             return 1;
         } else {
             switch (opt) {
@@ -283,6 +316,9 @@ int main(int argc, char **argv) {
                 break;
             case 'k':
                 opt::filter = optarg;
+                break;
+            case 'h':
+                cerr << usage;
                 break;
             }
         }
