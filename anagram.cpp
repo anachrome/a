@@ -238,6 +238,7 @@ int main(int argc, char **argv) {
         { 0, 0, 0, 0 } /* end of list */
     };
 
+    string prog = argv[0];
     string usage = "usage: " + string(argv[0]) + R"( [OPTION] PHRASE
 find anagrams of PHRASE
 
@@ -328,8 +329,13 @@ find anagrams of PHRASE
     argv += optind;
 
     wstring want;
-    if (argc != 1) {
-        cout << "bad\n";
+    if (argc < 1) {
+        cerr << prog << ": two few arguments: " << argc
+             << " (exactly 1 is required)\n\n" << usage;
+        return 1;
+    } else if (argc > 1) {
+        cerr << prog << ": two many arguments: " << argc
+             << " (exactly 1 is required)\n\n" << usage;
         return 1;
     } else {
         want = converter.from_bytes(*argv);
