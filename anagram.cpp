@@ -2,9 +2,8 @@
 #include <fstream>
 #include <string>
 #include <list>
-#include <algorithm>
 #include <map>
-#include <sstream>
+#include <algorithm>
 #include <regex>
 #include <locale>
 #include <codecvt>
