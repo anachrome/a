@@ -216,7 +216,16 @@ int main(int argc, char **argv) {
 
         add sanity checks/error messages for bad options
         we need a --help and/or a manpage
+
+        --show-words and --max-words or --min-words is ehh
+        --punctuation and --alphabet is BAD
+        --filter-drop and --filter-keep is BAD
     */
+
+    // mutually exclusive options
+    bool filter_drop = false, filter_keep = false;
+    bool punctuation = false, alphabet = false;
+    bool show_words = false, max_words = false, min_words = false;
 
     auto shorts = "d:l:L:w:W:isp:a:,:n:f:k:h";
     struct option longs[] = {
@@ -288,22 +297,27 @@ find anagrams of PHRASE
                 break;
             case 'w':
                 opt::max_words = stoi(optarg);
+                max_words = true;
                 break;
             case 'W':
                 opt::min_words = stoi(optarg);
+                min_words = true;
                 break;
             case 'i':
                 opt::case_insensitive = true;
                 break;
             case 's':
                 opt::show_words = true;
+                show_words = true;
                 break;
             case 'p':
                 opt::punctuation = converter.from_bytes(optarg);
+                punctuation = true;
                 break;
             case 'a':
                 opt::punctuation = converter.from_bytes(optarg);
                 opt::punctuation_mode = opt::KEEP;
+                alphabet = true;
                 break;
             case ',':
                 opt::word_separator = optarg;
@@ -314,19 +328,34 @@ find anagrams of PHRASE
             case 'f':
                 opt::filter = optarg;
                 opt::filter_mode = opt::DROP;
+                filter_drop = true;
                 break;
             case 'k':
                 opt::filter = optarg;
+                filter_keep = true;
                 break;
             case 'h':
                 cerr << usage;
-                break;
+                return 0;
             }
         }
     }
 
     argc -= optind;
     argv += optind;
+
+    if (punctuation && alphabet) {
+        cerr << prog << ": --punctuation and --alphabet "
+             << " are mutually exclusive options\n";
+        return 1;
+    } else if (filter_keep && filter_drop) {
+        cerr << prog << ": --filter-drop and --filter-keep "
+             << "are mutually exclusive\n";
+        return 1;
+    } else if (show_words && (min_words || max_words)) {
+        cerr << "warning: --min-words and --max-words "
+             << "have no effect with --show-words\n";
+    }
 
     wstring want;
     if (argc < 1) {
