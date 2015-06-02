@@ -1,14 +1,11 @@
 #include <iostream>
 #include <fstream>
-#include <vector>
 #include <string>
 #include <list>
 #include <algorithm>
-#include <bitset>
 #include <map>
 #include <sstream>
 #include <regex>
-
 #include <locale>
 #include <codecvt>
 
@@ -18,7 +15,6 @@ using namespace std;
 
 typedef unsigned long long ullong_t; /* typedef uint64_t bitmask_t ? */
 typedef vector<ullong_t> word_t;
-// entry into the dictionary
 struct entry_t {
     string bytes;    // used to save on conversion time when (w)couting
     wstring letters; // the letters (unicode codepoints) of the entry, in order
@@ -34,38 +30,39 @@ public:
     using Facet::Facet;
     ~deletable_facet() { }
 };
-
 typedef deletable_facet<codecvt_byname<wchar_t, char, mbstate_t>> locale_cvt;
 wstring_convert<locale_cvt> converter(new locale_cvt(""));
 
-// global modifiers
-string dictfilename = "/usr/share/dict/words"; /* set and used in main */
-wstring want; /* set in main; used in anagram */
-int min_letters = 0; /* set in main; used in anagram */
-int max_letters = 0; /* set in main; used in anagram */
-int min_words = 0; /* set in main; used in anagram(4) */
-int max_words = 0; /* set in main; used in anagram(4) */
-bool case_insensitive = false; /* set in main; used in anagram */
-bool show_words = false; /* set in main; used in anagram */
-wstring punctuation; /* set in main; used in anagram */
-bool keep = false; /* set in main; used in anagram */
-string separator = " "; /* set in main; used in print */
-string filter = ""; /* set in main; used in anagram */
-enum { NONE, DROP, KEEP } filter_keep = NONE; /* set in main; used in anagram */
+// global options
+namespace opt {
+    enum mode_t { DROP, KEEP };
+    string dictfilename = "/usr/share/dict/words";
+    int min_letters = 0;
+    int max_letters = 0;
+    int min_words = 0;
+    int max_words = 0;
+    bool case_insensitive = false;
+    bool show_words = false;
+    wstring punctuation = L"";
+    mode_t punctuation_mode = DROP;
+    string word_separator = " ";
+    string anagram_separator = "\n";
+    string filter = "";
+    mode_t filter_mode = KEEP;
+}
 
 bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask);
 bool in(const word_t &needle, const word_t &haystack);
 word_t remove(word_t needle, const word_t &haystack);
 void print(const list<entry_t> &dict, vector<dict_iter_t> anagram);
-int set_options(int argc, char **argv);
 
 // the sortedness of dict before calling this algorithm affects its speed
 void anagram(const list<entry_t> &dict, const dict_iter_t &begin,
              word_t word, vector<dict_iter_t> &prefix) {
-    if (!word.size() && prefix.size() >= min_words)
+    if (!word.size() && prefix.size() >= opt::min_words)
         print(dict, prefix);
 
-    if (max_words && prefix.size() == max_words)
+    if (opt::max_words && prefix.size() == opt::max_words)
         return;
 
     for (auto i = begin; i != dict.cend(); i++) {
@@ -90,13 +87,16 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
         if (anagram.size()) {
             cout << (anagram[0]->bytes);
             for (int i = 1; i < anagram.size(); i++)
-                cout << separator << anagram[i]->bytes;
+                cout << opt::word_separator << anagram[i]->bytes;
         }
-        cout << '\n';
+        cout << opt::anagram_separator;
 
         int i = anagram.size();
         while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
             i--;
+        //for (int i = anagram.size(); i > 0; i--)
+        //    if (++anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
+        //        break;
         if (i - 1 < 0)
             return;
         for (; i < anagram.size(); i++)
@@ -104,8 +104,8 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
     }
 }
 
-void anagram(wistream &dictfile) {
-    if (case_insensitive)
+void anagram(wistream &dictfile, wstring want) {
+    if (opt::case_insensitive)
         transform(want.begin(), want.end(), want.begin(), ::tolower);
 
     map<wchar_t, ullong_t> letter_pos;
@@ -113,7 +113,7 @@ void anagram(wistream &dictfile) {
     ullong_t letter_hash = 0x1;
     int alphabet = 0;
     for (wchar_t c : want) {
-        if (case_insensitive)
+        if (opt::case_insensitive)
             c = tolower(c);
         if (letter_pos.find(c) != letter_pos.cend())
             continue;
@@ -127,41 +127,42 @@ void anagram(wistream &dictfile) {
     count(letter_pos, want, cwant);
 
     list<entry_t> dict;
-    regex re(filter, regex_constants::extended);
+    regex re(opt::filter, regex_constants::extended);
     wstring wword;
     while (getline(dictfile, wword)) {
         string word = converter.to_bytes(wword);
 
-        switch (filter_keep) {
-        case DROP:
+        switch (opt::filter_mode) {
+        case opt::DROP:
             if(regex_search(word, re))
                 continue;
             break;
-        case KEEP:
+        case opt::KEEP:
             if(!regex_search(word, re))
                 continue;
             break;
-        case NONE:
-            break;
         }
 
-        if (case_insensitive)
+        if (opt::case_insensitive)
             transform(wword.begin(), wword.end(), wword.begin(), ::tolower);
 
-        if (keep) {
+        switch (opt::punctuation_mode) {
+        case (opt::KEEP):
             wword.erase(remove_if(wword.begin(), wword.end(),
                 [](wchar_t c) {
                     //return find(punctuation.cbegin(), punctuation.cend(),
                     //    c) == punctuation.cend();
-                    return punctuation.find(c) == punctuation.npos;
+                    return opt::punctuation.find(c) == opt::punctuation.npos;
                 }), wword.end());
-        } else {
+            break;
+        case (opt::DROP):
             wword.erase(remove_if(wword.begin(), wword.end(),
                 [](wchar_t c) {
                     //return find(punctuation.cbegin(), punctuation.cend(),
                     //    c) != punctuation.cend();
-                    return punctuation.find(c) != punctuation.npos;
+                    return opt::punctuation.find(c) != opt::punctuation.npos;
                 }), wword.end());
+            break;
         }
 
         if (!wword.size()) {
@@ -170,9 +171,9 @@ void anagram(wistream &dictfile) {
             continue;
         }
 
-        if (max_letters && wword.size() > max_letters)
+        if (opt::max_letters && wword.size() > opt::max_letters)
             continue;
-        if (wword.size() < min_letters)
+        if (wword.size() < opt::min_letters)
             continue;
 
         word_t cword;
@@ -199,7 +200,7 @@ void anagram(wistream &dictfile) {
         }
     }
 
-    if (show_words) {
+    if (opt::show_words) {
         for (auto e : dict)
             cout << e.bytes << endl;
         return;
@@ -214,33 +215,26 @@ int main(int argc, char **argv) {
 
         also there are a couple of "feature bugs" that might want removing
 
-        --anagram-separator in addition to --word-separator?
-
-        filter certain anagrams, at least with regexen
-        --filter, -f
-        --keep, -k
-        word-level and whole-anagram-level filtering?
-
         add sanity checks/error messages for bad options
-
         we need a --help and/or a manpage
     */
 
-    auto shorts = "d:l:L:w:W:isp:a:,:f:k:";
+    auto shorts = "d:l:L:w:W:isp:a:,:n:f:k:";
     struct option longs[] = {
-        /* name           has_arg            flag     val */
-        {  "dict",        required_argument, nullptr, 'd' },
-        {  "min-letters", required_argument, nullptr, 'l' },
-        {  "max-letters", required_argument, nullptr, 'L' },
-        {  "max-words",   required_argument, nullptr, 'w' },
-        {  "min-words",   required_argument, nullptr, 'W' },
-        {  "ignore-case", no_argument,       nullptr, 'i' },
-        {  "show-words",  no_argument,       nullptr, 's' },
-        {  "punctuation", required_argument, nullptr, 'p' },
-        {  "alphabet",    required_argument, nullptr, 'a' },
-        {  "separator",   required_argument, nullptr, ',' },
-        {  "filter-drop", required_argument, nullptr, 'f' },
-        {  "filter-keep", required_argument, nullptr, 'k' },
+        /* name                 has_arg            flag     val */
+        {  "dict",              required_argument, nullptr, 'd' },
+        {  "min-letters",       required_argument, nullptr, 'l' },
+        {  "max-letters",       required_argument, nullptr, 'L' },
+        {  "max-words",         required_argument, nullptr, 'w' },
+        {  "min-words",         required_argument, nullptr, 'W' },
+        {  "ignore-case",       no_argument,       nullptr, 'i' },
+        {  "show-words",        no_argument,       nullptr, 's' },
+        {  "punctuation",       required_argument, nullptr, 'p' },
+        {  "alphabet",          required_argument, nullptr, 'a' },
+        {  "word-separator",    required_argument, nullptr, ',' },
+        {  "anagram-separator", required_argument, nullptr, 'n' },
+        {  "filter-drop",       required_argument, nullptr, 'f' },
+        {  "filter-keep",       required_argument, nullptr, 'k' },
         { 0, 0, 0, 0 } /* end of list */
     };
 
@@ -251,43 +245,45 @@ int main(int argc, char **argv) {
         } else {
             switch (opt) {
             case 'd':
-                dictfilename = optarg;
+                opt::dictfilename = optarg;
                 break;
             case 'l':
-                min_letters = stoi(optarg);
+                opt::min_letters = stoi(optarg);
                 break;
             case 'L':
-                max_letters = stoi(optarg);
+                opt::max_letters = stoi(optarg);
                 break;
             case 'w':
-                max_words = stoi(optarg);
+                opt::max_words = stoi(optarg);
                 break;
             case 'W':
-                min_words = stoi(optarg);
+                opt::min_words = stoi(optarg);
                 break;
             case 'i':
-                case_insensitive = true;
+                opt::case_insensitive = true;
                 break;
             case 's':
-                show_words = true;
+                opt::show_words = true;
                 break;
             case 'p':
-                punctuation = converter.from_bytes(optarg);
+                opt::punctuation = converter.from_bytes(optarg);
                 break;
             case 'a':
-                punctuation = converter.from_bytes(optarg);
-                keep = true;
+                opt::punctuation = converter.from_bytes(optarg);
+                opt::punctuation_mode = opt::KEEP;
                 break;
             case ',':
-                separator = optarg;
+                opt::word_separator = optarg;
+                break;
+            case 'n':
+                opt::anagram_separator = optarg;
                 break;
             case 'f':
-                filter = optarg;
-                filter_keep = DROP;
+                opt::filter = optarg;
+                opt::filter_mode = opt::DROP;
                 break;
             case 'k':
-                filter = optarg;
-                filter_keep = KEEP;
+                opt::filter = optarg;
                 break;
             }
         }
@@ -296,6 +292,7 @@ int main(int argc, char **argv) {
     argc -= optind;
     argv += optind;
 
+    wstring want;
     if (argc != 1) {
         cout << "bad\n";
         return 1;
@@ -303,14 +300,14 @@ int main(int argc, char **argv) {
         want = converter.from_bytes(*argv);
     }
 
-    wifstream dictfile(dictfilename);
+    wifstream dictfile(opt::dictfilename);
     dictfile.imbue(locale(""));
     if (!dictfile.good()) {
-        cout << "couldn't open " << dictfilename << endl;
+        cout << "couldn't open " << opt::dictfilename << endl;
         return 1;
     }
 
-    anagram(dictfile);
+    anagram(dictfile, want);
 
     return 0;
 }
