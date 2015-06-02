@@ -165,7 +165,7 @@ void anagram(wistream &dictfile, wstring want) {
         }
 
         if (!wword.size()) {
-            cout << "warning: `" << word << "' is entirely punctuation."
+            cerr << "warning: `" << word << "' is entirely punctuation."
                                          << "  skipping.\n";
             continue;
         }
@@ -210,18 +210,6 @@ void anagram(wistream &dictfile, wstring want) {
 }
 
 int main(int argc, char **argv) {
-    /*  tentative options + flags: and various TODO:s
-
-        also there are a couple of "feature bugs" that might want removing
-
-        add sanity checks/error messages for bad options
-        we need a --help and/or a manpage
-
-        --show-words and --max-words or --min-words is ehh
-        --punctuation and --alphabet is BAD
-        --filter-drop and --filter-keep is BAD
-    */
-
     // mutually exclusive options
     bool filter_drop = false, filter_keep = false;
     bool punctuation = false, alphabet = false;
