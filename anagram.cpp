@@ -344,7 +344,7 @@ find anagrams of PHRASE
     wifstream dictfile(opt::dictfilename);
     dictfile.imbue(locale(""));
     if (!dictfile.good()) {
-        cout << "couldn't open " << opt::dictfilename << endl;
+        cout << prog << ": unable to open file: " << opt::dictfilename << endl;
         return 1;
     }
 
