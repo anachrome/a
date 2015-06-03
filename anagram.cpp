@@ -12,8 +12,8 @@
 
 using namespace std;
 
-typedef unsigned long long ullong_t; /* typedef uint64_t bitmask_t ? */
-typedef vector<ullong_t> word_t;
+typedef uint_fast64_t bitmask_t;
+typedef vector<bitmask_t> word_t;
 struct entry_t {
     string bytes;    // used to save on conversion time when (w)couting
     wstring letters; // the letters (unicode codepoints) of the entry, in order
@@ -50,7 +50,7 @@ namespace opt {
     mode_t filter_mode = KEEP;
 }
 
-bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask);
+bool count(map<wchar_t, bitmask_t> &letter_pos, wstring word, word_t &mask);
 bool in(const word_t &needle, const word_t &haystack);
 word_t remove(word_t needle, const word_t &haystack);
 void print(const list<entry_t> &dict, vector<dict_iter_t> anagram);
@@ -107,9 +107,9 @@ void anagram(wistream &dictfile, wstring want) {
     if (opt::case_insensitive)
         transform(want.begin(), want.end(), want.begin(), ::tolower);
 
-    map<wchar_t, ullong_t> letter_pos;
+    map<wchar_t, bitmask_t> letter_pos;
 
-    ullong_t letter_hash = 0x1;
+    bitmask_t letter_hash = 0x1;
     int alphabet = 0;
     for (wchar_t c : want) {
         if (opt::case_insensitive)
@@ -370,7 +370,7 @@ find anagrams of PHRASE
     return 0;
 }
 
-bool count(map<wchar_t, ullong_t> &letter_pos, wstring word, word_t &mask) {
+bool count(map<wchar_t, bitmask_t> &letter_pos, wstring word, word_t &mask) {
     for (wchar_t c : word) {
         if (letter_pos.find(c) == letter_pos.cend())
             return false;
