@@ -16,8 +16,8 @@ typedef uint_fast64_t bitmask_t;
 typedef vector<bitmask_t> word_t;
 struct entry_t {
     string bytes;    // used to save on conversion time when (w)couting
-    wstring letters; // the letters (unicode codepoints) of the entry, in order
-    word_t mask;     // the letters, represented as a vector of bitmasks
+    wstring letters; // the characters of the entry, in order
+    word_t mask;     // the characters, represented as a vector of bitmasks
     bool same;       // true if this is an anagram of the previous entry
 };
 typedef list<entry_t>::const_iterator dict_iter_t;
