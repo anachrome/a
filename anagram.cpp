@@ -153,8 +153,8 @@ void anagram(istream &dictfile, string want) {
         }
 
         if (!wword.size()) {
-            cerr << "warning: `" << word << "' is entirely punctuation."
-                                         << "  skipping.\n";
+            cerr << prog << "warning: `" << word
+                 << "' is entirely punctuation.  skipping.\n";
             continue;
         }
 
@@ -329,7 +329,7 @@ find anagrams of PHRASE
              << "are mutually exclusive\n";
         return 1;
     } else if (show_words && (min_words || max_words)) {
-        cerr << "warning: --min-words and --max-words "
+        cerr << prog << "warning: --min-words and --max-words "
              << "have no effect with --show-words\n";
     }
 
