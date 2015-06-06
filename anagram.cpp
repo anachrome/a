@@ -5,8 +5,6 @@
 #include <map>
 #include <algorithm>
 #include <regex>
-#include <locale>
-#include <codecvt>
 
 #include <getopt.h>
 
@@ -16,21 +14,11 @@ typedef uint_fast64_t bitmask_t;
 typedef vector<bitmask_t> word_t;
 struct entry_t {
     string bytes;    // used to save on conversion time when (w)couting
-    wstring letters; // the letters (unicode codepoints) of the entry, in order
+    string letters; // the letters (unicode codepoints) of the entry, in order
     word_t mask;     // the letters, represented as a vector of bitmasks
     bool same;       // true if this is an anagram of the previous entry
 };
 typedef list<entry_t>::const_iterator dict_iter_t;
-
-// thanks stackoverflow
-template <class Facet>
-class deletable_facet : public Facet {
-public:
-    using Facet::Facet;
-    ~deletable_facet() { }
-};
-typedef deletable_facet<codecvt_byname<wchar_t, char, mbstate_t>> locale_cvt;
-wstring_convert<locale_cvt> converter(new locale_cvt(""));
 
 // global options
 namespace opt {
@@ -42,7 +30,7 @@ namespace opt {
     int max_words = 0;
     bool case_insensitive = false;
     bool show_words = false;
-    wstring punctuation = L"";
+    string punctuation = "";
     mode_t punctuation_mode = DROP;
     string word_separator = " ";
     string anagram_separator = "\n";
@@ -50,7 +38,7 @@ namespace opt {
     mode_t filter_mode = KEEP;
 }
 
-bool count(map<wchar_t, bitmask_t> &letter_pos, wstring word, word_t &mask);
+bool count(map<wchar_t, bitmask_t> &letter_pos, string word, word_t &mask);
 bool in(const word_t &needle, const word_t &haystack);
 word_t remove(word_t needle, const word_t &haystack);
 void print(const list<entry_t> &dict, vector<dict_iter_t> anagram);
@@ -90,12 +78,16 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
         }
         cout << opt::anagram_separator;
 
-        int i = anagram.size();
-        while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
-            i--;
-        //for (int i = anagram.size(); i > 0; i--)
-        //    if (++anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
-        //        break;
+        //int i = anagram.size();
+        //while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
+        //    i--;
+
+        int i;
+        for (i = anagram.size(); i > 0; i--)
+            ++anagram[i - 1];
+            if (anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
+                break;
+
         if (i - 1 < 0)
             return;
         for (; i < anagram.size(); i++)
@@ -103,7 +95,7 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
     }
 }
 
-void anagram(wistream &dictfile, wstring want) {
+void anagram(istream &dictfile, string want) {
     if (opt::case_insensitive)
         transform(want.begin(), want.end(), want.begin(), ::tolower);
 
@@ -127,9 +119,9 @@ void anagram(wistream &dictfile, wstring want) {
 
     list<entry_t> dict;
     regex re(opt::filter, regex_constants::extended);
-    wstring wword;
+    string wword;
     while (getline(dictfile, wword)) {
-        string word = converter.to_bytes(wword);
+        string word = wword;
 
         switch (opt::filter_mode) {
         case opt::DROP:
@@ -149,16 +141,12 @@ void anagram(wistream &dictfile, wstring want) {
         case (opt::KEEP):
             wword.erase(remove_if(wword.begin(), wword.end(),
                 [](wchar_t c) {
-                    //return find(punctuation.cbegin(), punctuation.cend(),
-                    //    c) == punctuation.cend();
                     return opt::punctuation.find(c) == opt::punctuation.npos;
                 }), wword.end());
             break;
         case (opt::DROP):
             wword.erase(remove_if(wword.begin(), wword.end(),
                 [](wchar_t c) {
-                    //return find(punctuation.cbegin(), punctuation.cend(),
-                    //    c) != punctuation.cend();
                     return opt::punctuation.find(c) != opt::punctuation.npos;
                 }), wword.end());
             break;
@@ -299,11 +287,11 @@ find anagrams of PHRASE
                 show_words = true;
                 break;
             case 'p':
-                opt::punctuation = converter.from_bytes(optarg);
+                opt::punctuation = optarg;
                 punctuation = true;
                 break;
             case 'a':
-                opt::punctuation = converter.from_bytes(optarg);
+                opt::punctuation = optarg;
                 opt::punctuation_mode = opt::KEEP;
                 alphabet = true;
                 break;
@@ -345,7 +333,7 @@ find anagrams of PHRASE
              << "have no effect with --show-words\n";
     }
 
-    wstring want;
+    string want;
     if (argc < 1) {
         cerr << prog << ": two few arguments: " << argc
              << " (exactly 1 is required)\n\n" << usage;
@@ -355,10 +343,10 @@ find anagrams of PHRASE
              << " (exactly 1 is required)\n\n" << usage;
         return 1;
     } else {
-        want = converter.from_bytes(*argv);
+        want = *argv;
     }
 
-    wifstream dictfile(opt::dictfilename);
+    ifstream dictfile(opt::dictfilename);
     dictfile.imbue(locale(""));
     if (!dictfile.good()) {
         cout << prog << ": unable to open file: " << opt::dictfilename << endl;
@@ -370,7 +358,7 @@ find anagrams of PHRASE
     return 0;
 }
 
-bool count(map<wchar_t, bitmask_t> &letter_pos, wstring word, word_t &mask) {
+bool count(map<wchar_t, bitmask_t> &letter_pos, string word, word_t &mask) {
     for (wchar_t c : word) {
         if (letter_pos.find(c) == letter_pos.cend())
             return false;
