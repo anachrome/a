@@ -147,16 +147,12 @@ void anagram(wistream &dictfile, wstring want) {
         case (opt::KEEP):
             wword.erase(remove_if(wword.begin(), wword.end(),
                 [](wchar_t c) {
-                    //return find(punctuation.cbegin(), punctuation.cend(),
-                    //    c) == punctuation.cend();
                     return opt::punctuation.find(c) == opt::punctuation.npos;
                 }), wword.end());
             break;
         case (opt::DROP):
             wword.erase(remove_if(wword.begin(), wword.end(),
                 [](wchar_t c) {
-                    //return find(punctuation.cbegin(), punctuation.cend(),
-                    //    c) != punctuation.cend();
                     return opt::punctuation.find(c) != opt::punctuation.npos;
                 }), wword.end());
             break;
