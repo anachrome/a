@@ -164,11 +164,8 @@ void anagram(wistream &dictfile, wstring want) {
             break;
         }
 
-        if (!wword.size()) {
-            cerr << prog << "warning: `" << word
-                 << "' is entirely punctuation.  skipping.\n";
+        if (!wword.size())
             continue;
-        }
 
         if (opt::max_letters && wword.size() > opt::max_letters)
             continue;
