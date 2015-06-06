@@ -90,12 +90,10 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
         }
         cout << opt::anagram_separator;
 
-        int i = anagram.size();
-        while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
-            i--;
-        //for (int i = anagram.size(); i > 0; i--)
-        //    if (++anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
-        //        break;
+        int i
+        for (i = anagram.size(); i > 0; i--)
+            if (++anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
+                break;
         if (i - 1 < 0)
             return;
         for (; i < anagram.size(); i++)
