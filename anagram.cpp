@@ -338,11 +338,11 @@ find anagrams of PHRASE
 
     wstring want;
     if (argc < 1) {
-        cerr << prog << ": two few arguments: " << argc
+        cerr << prog << ": too few arguments: " << argc
              << " (exactly 1 is required)\n\n" << usage;
         return 1;
     } else if (argc > 1) {
-        cerr << prog << ": two many arguments: " << argc
+        cerr << prog << ": too many arguments: " << argc
              << " (exactly 1 is required)\n\n" << usage;
         return 1;
     } else {
