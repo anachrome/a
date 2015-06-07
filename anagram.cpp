@@ -90,7 +90,7 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
         }
         cout << opt::anagram_separator;
 
-        int i
+        int i;
         for (i = anagram.size(); i > 0; i--)
             if (++anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
                 break;
@@ -352,7 +352,8 @@ find anagrams of PHRASE
     wifstream dictfile(opt::dictfilename);
     dictfile.imbue(locale(""));
     if (!dictfile.good()) {
-        cout << prog << ": unable to open file: " << opt::dictfilename << endl;
+        cerr << prog << ": " << opt::dictfilename
+             << ": " << strerror(errno) << endl;
         return 1;
     }
 
