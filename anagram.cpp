@@ -46,6 +46,7 @@ namespace opt {
     mode_t punctuation_mode = DROP;
     string word_separator = " ";
     string anagram_separator = "\n";
+    char dict_separator = '\n';
     bool sanitary = true;
     string filter = "";
     mode_t filter_mode = KEEP;
@@ -150,7 +151,7 @@ void anagram(istream &dictfile, string want) {
     list<entry_t> dict;
     regex re(opt::filter, regex_constants::extended);
     string word;
-    while (getline(dictfile, word)) {
+    while (getline(dictfile, word, opt::dict_separator)) {
         if (opt::sanitary) {
             int i;
             while ((i = word.find(opt::word_separator)) != word.npos)
@@ -236,7 +237,7 @@ int main(int argc, char **argv) {
     bool punctuation = false, alphabet = false;
     bool show_words = false, max_words = false, min_words = false;
 
-    auto shorts = "d:l:L:w:W:isp:a:,:n:uf:k:h";
+    auto shorts = "d:l:L:w:W:isp:a:,:n:N:uf:k:h";
     struct option longs[] = {
         /* name                 has_arg            flag     val */
         {  "dict",              required_argument, nullptr, 'd' },
@@ -250,6 +251,7 @@ int main(int argc, char **argv) {
         {  "alphabet",          required_argument, nullptr, 'a' },
         {  "word-separator",    required_argument, nullptr, ',' },
         {  "anagram-separator", required_argument, nullptr, 'n' },
+        {  "dict-separator",    required_argument, nullptr, 'N' },
         {  "unsanitary",        no_argument,       nullptr, 'u' },
         {  "filter-drop",       required_argument, nullptr, 'f' },
         {  "filter-keep",       required_argument, nullptr, 'k' },
@@ -283,6 +285,8 @@ find anagrams of PHRASE
                                   are anagrams
   -,,  --word-separator=STR     output STR between words in anagrams
   -n,  --anagram-separator=STR  output STR between anagrams
+  -N,  --dict-separator=CHAR    use CHAR as word separator when parsing the
+                                  dictionary
   -u,  --unsanitary             do not strip word-separator and anagram-
                                   separator from PHRASE or dictionary entries
   -s,  --show-words             do not output anagrams; instead, show all of
@@ -336,6 +340,14 @@ find anagrams of PHRASE
                 break;
             case 'n':
                 opt::anagram_separator = optarg;
+                break;
+            case 'N':
+                if (strlen(optarg) > 1) {
+                    cerr << prog
+                         << ": --dict-separator must be a single byte\n";
+                    return 1;
+                }
+                opt::dict_separator = *optarg;
                 break;
             case 'u':
                 opt::sanitary = false;
