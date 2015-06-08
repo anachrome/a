@@ -14,8 +14,8 @@ typedef uint_fast64_t bitmask_t;
 typedef vector<bitmask_t> word_t;
 struct entry_t {
     string bytes;    // used to save on conversion time when (w)couting
-    string letters; // the letters (unicode codepoints) of the entry, in order
-    word_t mask;     // the letters, represented as a vector of bitmasks
+    string letters;  // the characters of the entry, in order
+    word_t mask;     // the characters, represented as a vector of bitmasks
     bool same;       // true if this is an anagram of the previous entry
 };
 typedef list<entry_t>::const_iterator dict_iter_t;
@@ -34,6 +34,8 @@ namespace opt {
     mode_t punctuation_mode = DROP;
     string word_separator = " ";
     string anagram_separator = "\n";
+    char dict_separator = '\n';
+    bool sanitary = true;
     string filter = "";
     mode_t filter_mode = KEEP;
 }
@@ -78,16 +80,10 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
         }
         cout << opt::anagram_separator;
 
-        //int i = anagram.size();
-        //while (i && (++anagram[i - 1] == dict.cend() || !anagram[i - 1]->same))
-        //    i--;
-
         int i;
         for (i = anagram.size(); i > 0; i--)
-            ++anagram[i - 1];
-            if (anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
+            if (++anagram[i - 1] != dict.cend() && anagram[i - 1]->same)
                 break;
-
         if (i - 1 < 0)
             return;
         for (; i < anagram.size(); i++)
@@ -96,14 +92,37 @@ void print(const list<entry_t> &dict, vector<dict_iter_t> anagram) {
 }
 
 void anagram(istream &dictfile, string want) {
+    if (opt::sanitary) {
+        int i;
+        while ((i = want.find(opt::word_separator)) != want.npos)
+            want.erase(i, opt::word_separator.length());
+        while ((i = want.find(opt::anagram_separator)) != want.npos)
+            want.erase(i, opt::anagram_separator.length());
+    }
+
+    string wwant = want;
+
     if (opt::case_insensitive)
-        transform(want.begin(), want.end(), want.begin(), ::tolower);
+        transform(wwant.begin(), wwant.end(), wwant.begin(), ::tolower);
+
+    switch (opt::punctuation_mode) {
+    case (opt::KEEP):
+        wwant.erase(remove_if(wwant.begin(), wwant.end(), [](wchar_t c) {
+                return opt::punctuation.find(c) == opt::punctuation.npos;
+            }), wwant.end());
+        break;
+    case (opt::DROP):
+        wwant.erase(remove_if(wwant.begin(), wwant.end(), [](wchar_t c) {
+                return opt::punctuation.find(c) != opt::punctuation.npos;
+            }), wwant.end());
+        break;
+    }
 
     map<wchar_t, bitmask_t> letter_pos;
 
     bitmask_t letter_hash = 0x1;
     int alphabet = 0;
-    for (wchar_t c : want) {
+    for (wchar_t c : wwant) {
         if (opt::case_insensitive)
             c = tolower(c);
         if (letter_pos.find(c) != letter_pos.cend())
@@ -115,13 +134,21 @@ void anagram(istream &dictfile, string want) {
 
     // if this returns false, there is a bug in the program
     word_t cwant;
-    count(letter_pos, want, cwant);
+    count(letter_pos, wwant, cwant);
 
     list<entry_t> dict;
     regex re(opt::filter, regex_constants::extended);
-    string wword;
-    while (getline(dictfile, wword)) {
-        string word = wword;
+    string word;
+    while (getline(dictfile, word, opt::dict_separator)) {
+        if (opt::sanitary) {
+            int i;
+            while ((i = word.find(opt::word_separator)) != word.npos)
+                word.erase(i, opt::word_separator.length());
+            while ((i = word.find(opt::anagram_separator)) != word.npos)
+                word.erase(i, opt::anagram_separator.length());
+        }
+
+        string wword = word;
 
         switch (opt::filter_mode) {
         case opt::DROP:
@@ -139,24 +166,19 @@ void anagram(istream &dictfile, string want) {
 
         switch (opt::punctuation_mode) {
         case (opt::KEEP):
-            wword.erase(remove_if(wword.begin(), wword.end(),
-                [](wchar_t c) {
+            wword.erase(remove_if(wword.begin(), wword.end(), [](wchar_t c) {
                     return opt::punctuation.find(c) == opt::punctuation.npos;
                 }), wword.end());
             break;
         case (opt::DROP):
-            wword.erase(remove_if(wword.begin(), wword.end(),
-                [](wchar_t c) {
+            wword.erase(remove_if(wword.begin(), wword.end(), [](wchar_t c) {
                     return opt::punctuation.find(c) != opt::punctuation.npos;
                 }), wword.end());
             break;
         }
 
-        if (!wword.size()) {
-            cerr << "warning: `" << word << "' is entirely punctuation."
-                                         << "  skipping.\n";
+        if (!wword.size())
             continue;
-        }
 
         if (opt::max_letters && wword.size() > opt::max_letters)
             continue;
@@ -203,7 +225,7 @@ int main(int argc, char **argv) {
     bool punctuation = false, alphabet = false;
     bool show_words = false, max_words = false, min_words = false;
 
-    auto shorts = "d:l:L:w:W:isp:a:,:n:f:k:h";
+    auto shorts = "d:l:L:w:W:isp:a:,:n:N:uf:k:h";
     struct option longs[] = {
         /* name                 has_arg            flag     val */
         {  "dict",              required_argument, nullptr, 'd' },
@@ -217,6 +239,8 @@ int main(int argc, char **argv) {
         {  "alphabet",          required_argument, nullptr, 'a' },
         {  "word-separator",    required_argument, nullptr, ',' },
         {  "anagram-separator", required_argument, nullptr, 'n' },
+        {  "dict-separator",    required_argument, nullptr, 'N' },
+        {  "unsanitary",        no_argument,       nullptr, 'u' },
         {  "filter-drop",       required_argument, nullptr, 'f' },
         {  "filter-keep",       required_argument, nullptr, 'k' },
         {  "help",              no_argument,       nullptr, 'h' },
@@ -249,6 +273,10 @@ find anagrams of PHRASE
                                   are anagrams
   -,,  --word-separator=STR     output STR between words in anagrams
   -n,  --anagram-separator=STR  output STR between anagrams
+  -N,  --dict-separator=CHAR    use CHAR as word separator when parsing the
+                                  dictionary
+  -u,  --unsanitary             do not strip word-separator and anagram-
+                                  separator from PHRASE or dictionary entries
   -s,  --show-words             do not output anagrams; instead, show all of
                                   the words in the dictionary that can be made
                                   out of letters in PHRASE
@@ -301,6 +329,17 @@ find anagrams of PHRASE
             case 'n':
                 opt::anagram_separator = optarg;
                 break;
+            case 'N':
+                if (strlen(optarg) > 1) {
+                    cerr << prog
+                         << ": --dict-separator must be a single byte\n";
+                    return 1;
+                }
+                opt::dict_separator = *optarg;
+                break;
+            case 'u':
+                opt::sanitary = false;
+                break;
             case 'f':
                 opt::filter = optarg;
                 opt::filter_mode = opt::DROP;
@@ -329,31 +368,35 @@ find anagrams of PHRASE
              << "are mutually exclusive\n";
         return 1;
     } else if (show_words && (min_words || max_words)) {
-        cerr << "warning: --min-words and --max-words "
+        cerr << prog << "warning: --min-words and --max-words "
              << "have no effect with --show-words\n";
     }
 
     string want;
     if (argc < 1) {
-        cerr << prog << ": two few arguments: " << argc
+        cerr << prog << ": too few arguments: " << argc
              << " (exactly 1 is required)\n\n" << usage;
         return 1;
     } else if (argc > 1) {
-        cerr << prog << ": two many arguments: " << argc
+        cerr << prog << ": too many arguments: " << argc
              << " (exactly 1 is required)\n\n" << usage;
         return 1;
     } else {
         want = *argv;
     }
 
-    ifstream dictfile(opt::dictfilename);
-    dictfile.imbue(locale(""));
-    if (!dictfile.good()) {
-        cout << prog << ": unable to open file: " << opt::dictfilename << endl;
-        return 1;
-    }
+    if (opt::dictfilename == "-") {
+        anagram(cin, want);
+    } else {
+        ifstream dictfile(opt::dictfilename);
+        if (!dictfile.good()) {
+            cerr << prog << ": " << opt::dictfilename
+                 << ": " << strerror(errno) << endl;
+            return 1;
+        }
 
-    anagram(dictfile, want);
+        anagram(dictfile, want);
+    }
 
     return 0;
 }
