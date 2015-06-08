@@ -1,0 +1,186 @@
+.TH ANAGRAM 1
+.SH NAME
+a, anagram \- find anagrams
+.SH SYNOPSIS
+.B anagram
+.RB [ \-d 
+.IR FILE ]
+.RB [ \-i ]
+.RB [ \-p
+|
+.B \-a
+.IR LETTERS ]
+.RB [ \-l
+.IR N ]
+.RB [ \-L
+.IR N ]
+.RB [ \-w
+.IR N ]
+.RB [ \-W
+.IR N ]
+.RB [ \-f
+|
+.B \-k
+.IR REGEX ]
+.RB [ \-,
+.IR STRING ]
+.RB [ \-n
+.IR STRING ]
+.RB [ \-s ]
+.RB [ \-h ]
+.I PHRASE
+
+.SH DESCRIPTION
+.B anagram
+finds anagrams of
+.IR PHRASE
+and prints them to stdout.
+
+.SH OPTIONS
+.SS "Anagram Options"
+.TP
+.BI \-d " FILE" "\fR,\fP \-\^\-dict=" FILE
+Use
+.I FILE
+as a dictionary\(ema list of strings which are valid words to make anagrams out
+of.  The default is to use
+.IR /usr/share/dict/words .
+
+.TP
+.BI \-N " CHAR" "\fR,\fP \-\^\-dict-separator=" CHAR
+Use
+.I CHAR
+as the word separator when parsing
+.IR FILE .
+The default is a newline.
+
+.TP
+.BR \-u ", " \-\^\-unsanitary
+Do not strip word-separator and anagram-separator (see
+.BR \-, " and " \-n )
+from
+.I PHRASE
+and entries in the dictionary.
+
+.TP
+.BR \-i ", " \-\^\-ignore-case
+Ignore case when deciding whether or not two strings are anagrams (anagrams
+are still output verbatim as their words appear in the dictionary\(emand
+multiple anagrams will still be printed for every permutation of case of
+dictionary entries).
+
+.TP
+.BI \-p " LETTERS" "\fR,\fP \-\^\-punctuation=" LETTERS
+.I LETTERS
+is interpreted as a set of characters to be considered as punctuation\(emthat
+is, to be ignored when deciding whether two strings are anagrams.  Like
+.B \-i
+, this will include punctuation in output and still print anagrams that differ
+only in punctuation.
+
+.TP
+.BI \-a " LETTERS" "\fR,\fP \-\^\-alphabet=" LETTERS
+The complement to
+.BR \-p :
+any character not in
+.I LETTERS
+will be treated as punctuation.
+
+.SS "Filter Options"
+.TP
+.BI \-l " N" "\fR,\fP \-\^\-min-letters=" N
+Words containing less than
+.I N
+letters will be ignored when forming anagrams.
+
+.TP
+.BI \-L " N" "\fR,\fP \-\^\-max-letters=" N
+Words containing more than
+.I N
+letters will be ignored when forming anagrams.
+
+.TP
+.BI \-w " N" "\fR,\fP \-\^\-max-words=" N
+Anagrams containing more than
+.I N
+words will be omitted from output.
+
+.TP
+.BI \-W " N" "\fR,\fP \-\^\-min-words=" N
+Anagrams containing less than
+.I N
+words will be omitted from output.
+
+.TP
+.BI \-f " PATTERN" "\fR,\fP \-\^\-filter-drop=" PATTERN
+Words matching the extended regular expression
+.I PATTERN
+will be ignored when forming anagrams.
+
+.TP
+.BI \-k " PATTERN" "\fR,\fP \-\^\-filter-keep=" PATTERN
+Words not matching the extended regular expression
+.I PATTERN
+will be ignored when forming anagrams.
+
+.SS "Output Options"
+.TP
+.BI \-, " STRING" "\fR,\fP \-\^\-word-separator=" STRING
+Print
+.I STRING
+between words in anagrams.  The default is a single space.  Unless
+.B \-u
+is set, this and the
+.I STRING
+set with
+.B \-n
+are stripped from
+.I PHRASE
+and the entries in the dictionary.
+
+.TP
+.BI \-n " STRING" "\fR,\fP \-\^\-anagram-separator=" STRING
+Print
+.I STRING
+between anagrams.  The default is a newline. Unless
+.B \-u
+is set, this and the
+.I STRING
+set with
+.B \-,
+are stripped from
+.I PHRASE
+and the entries in the dictionary.
+
+
+.SS "Mode Options"
+.TP
+.BR \-s ", " \-\^\-show-words
+Instead of printing any anagrams of
+.IR PHRASE ,
+output all of the words that could be present in an anagram of
+.IR PHRASE .
+This is equivalent to filtering from the dictionary all of the words containing
+letters not in
+.IR PHRASE ,
+or containing a letter more times than it appears in
+.IR PHRASE .
+
+.TP
+.BR \-h ", " \-\^\-help
+Print a short help message and then terminate immediately.
+.RI ( PHRASE
+may be omitted in this case, and all other options have no effect.)
+
+.SH FILES
+.TP
+.I /usr/share/dict/words
+Used as the dictionary if
+.B \-d
+is not present.
+
+.SH BUGS
+You tell me.
+
+.SH AUTHOR
+Lily Houghton (lily.anachrome@gmail.com)
