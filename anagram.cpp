@@ -398,14 +398,18 @@ find anagrams of PHRASE
         want = *argv;
     }
 
-    ifstream dictfile(opt::dictfilename);
-    if (!dictfile.good()) {
-        cerr << prog << ": " << opt::dictfilename
-             << ": " << strerror(errno) << endl;
-        return 1;
-    }
+    if (opt::dictfilename == "-") {
+        anagram(cin, want);
+    } else {
+        ifstream dictfile(opt::dictfilename);
+        if (!dictfile.good()) {
+            cerr << prog << ": " << opt::dictfilename
+                 << ": " << strerror(errno) << endl;
+            return 1;
+        }
 
-    anagram(dictfile, want);
+        anagram(dictfile, want);
+    }
 
     return 0;
 }
