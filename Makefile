@@ -13,8 +13,8 @@ uninstall:
 	rm /usr/local/share/man/man1/anagram.1.gz
 
 clean:
-	rm anagram
-	rm anagram.1.gz
+	rm -f anagram
+	rm -f anagram.1.gz
 
 anagram: anagram.cpp
 	g++ anagram.cpp -o anagram -O3 -std=c++11
