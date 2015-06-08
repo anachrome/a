@@ -6,8 +6,8 @@ install: anagram
 	mkdir -p /usr/local/bin/ /usr/local/share/man/man1/
 	cp anagram /usr/local/bin/
 	ln -sf /usr/local/bin/anagram /usr/local/bin/a
-	cp anagram.1.gz /usr/local/share/man/man1/
-	cp a.1.gz /usr/local/share/man/man1/
+	gzip -fk anagram.1 a.1
+	mv anagram.1.gz a.1.gz /usr/local/share/man/man1/
 
 uninstall:
 	rm /usr/local/bin/anagram
